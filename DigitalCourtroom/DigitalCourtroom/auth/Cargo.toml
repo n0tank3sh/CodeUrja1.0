@@ -1,0 +1,9 @@
+[package]
+name = "auth"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bcrypt = "0.17.0"
+diesel = { version = "2.2.8", features = ["postgres"] }
+ntex = { version = "2.12.3", features = ["tokio"] }

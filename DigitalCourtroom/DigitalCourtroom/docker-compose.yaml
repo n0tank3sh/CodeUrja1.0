@@ -1,0 +1,95 @@
+networks:
+  auth-net:
+  backend-net:
+volumes:
+  backend-build:
+  front-vol: 
+  auth-pgdata:
+  pgdata:
+services:
+  #auth-db:
+  #  networks: 
+  #    - auth-net
+  #  image: postgres:alpine
+  #  restart: always
+  #  volumes:
+  #    - auth-pgdata:/var/lib/postgresql/data
+  #  environement:
+  #    POSTGRES_PASSWORD: auth_password
+  #auth:
+  #  networks:
+  #    - auth-net
+  #  build:
+  #    context: /auth
+  #    dockerfile: Dockerfile
+  #watch
+  db:
+    networks:
+      - backend-net
+    image: postgres:alpine
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+  backend:
+    depends_on:
+      db:
+          condition: service_healthy
+          restart: true
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db::5432/postgres
+    ports:
+      - 8080:8080
+    develop:
+      watch:
+        - action: sync
+          path: backend
+          target: /app
+          ignore: 
+           - target
+        - action: rebuild
+          path: backend
+          target: /app
+          ignore: 
+            - target
+
+  frontend:
+    container_name: frontend
+    build:
+      context: frontend/
+      dockerfile: dev.Dockerfile
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - action: sync
+          path: frontend
+          target: /app
+          ignore: 
+          - node_modules/
+        - action: rebuild
+          path: frontend/
+          target: /app
+          ignore: 
+          - node_modules/
+
+    volumes:
+      - front-vol:/app
+      #backend:
+      #  container_name: backend
+      #  build: 
+      #    context: backend/
+      #    dockerfile: Dockerfile
